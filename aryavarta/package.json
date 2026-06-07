@@ -1,0 +1,15 @@
+{
+  "name": "aryavarta",
+  "version": "0.1.0",
+  "description": "Aryavarta: Legend of the Dharma-Vaan — Prototype Battle Engine",
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve . --listen 3000 --no-clipboard",
+    "start": "npx serve . --listen 3000"
+  },
+  "author": "Aryavarta Dev",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.3"
+  }
+}

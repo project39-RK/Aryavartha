@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aryavarta: Legend of the Dharma-Vaan</title>
+  <link rel="stylesheet" href="styles/battle.css" />
+</head>
+<body>
+
+<!-- ================================================================
+  SCREEN 1 — TITLE / INTRO
+  ================================================================ -->
+<section id="screen-intro" class="screen">
+  <div class="intro-bg-shimmer"></div>
+  <div class="game-logo">Aryavarta</div>
+  <div class="game-subtitle">Legend of the Dharma-Vaan</div>
+  <div class="intro-ornament">॥ ॐ ॥</div>
+
+  <p class="intro-narration">
+    "Dharma is the thread that holds the three worlds together.<br>
+    But even the strongest thread can be frayed by the winds of Maya…"
+  </p>
+
+  <p class="intro-narration" style="margin-top:-0.5rem;">
+    In the heart of Ayodhya, a new Seeker awakens.<br>
+    The Atmas of the forest grow restless — twisted by a shadow<br>
+    that feeds on ego. The Eclipse of Maya has begun.
+  </p>
+
+  <button id="btn-start" class="btn-primary">Begin Your Journey →</button>
+
+  <div class="intro-ornament" style="font-size:0.85rem; letter-spacing:0.15em; color:var(--text-dim);">
+    ✦ &nbsp;A Story of Dharma, Rivalry, and the Rebirth of the World&nbsp; ✦
+  </div>
+</section>
+
+
+<!-- ================================================================
+  SCREEN 2 — STORY / NARRATIVE SCREEN
+  ================================================================ -->
+<section id="screen-story" class="screen">
+
+  <!-- ─ Top bar: chapter, location, karma ─────────────────────── -->
+  <div class="story-topbar">
+    <div class="story-location-wrap">
+      <span class="story-chapter-label" id="story-chapter-label">Chapter I</span>
+      <span class="story-location" id="story-location">The Vashistha Academy</span>
+      <span class="story-time" id="story-time">Dusk</span>
+    </div>
+    <div class="karma-display" id="karma-display">
+      <span class="karma-pill dharma-pill" title="Dharma">☸ <span id="k-dharma">0</span></span>
+      <span class="karma-pill shakti-pill" title="Shakti">⚔ <span id="k-shakti">0</span></span>
+      <span class="karma-pill jnana-pill" title="Jnana">📖 <span id="k-jnana">0</span></span>
+      <span class="karma-pill karuna-pill" title="Karuna">💛 <span id="k-karuna">0</span></span>
+    </div>
+  </div>
+
+  <!-- ─ Main stage area ─────────────────────────────────────────── -->
+  <div class="story-stage" id="story-stage">
+
+    <!-- PANEL A: Title card -->
+    <div class="story-panel" id="panel-title" style="display:none">
+      <div class="title-card">
+        <div class="title-card-heading" id="title-heading">Chapter I</div>
+        <div class="title-card-sub" id="title-sub">Awakening</div>
+        <div class="title-divider">— ✦ —</div>
+        <div class="title-location" id="title-location">The Vashistha Academy, Ayodhya</div>
+        <div class="title-time" id="title-time">Dusk</div>
+      </div>
+    </div>
+
+    <!-- PANEL B: Narration -->
+    <div class="story-panel" id="panel-narration" style="display:none">
+      <div class="narration-scroll">
+        <div class="narration-text" id="narration-text"></div>
+      </div>
+    </div>
+
+    <!-- PANEL C: Dialogue -->
+    <div class="story-panel" id="panel-dialogue" style="display:none">
+      <div class="dialogue-speaker-row">
+        <div class="dialogue-speaker-glyph" id="dlg-glyph">🧙</div>
+        <div class="dialogue-speaker-info">
+          <div class="dialogue-speaker-name" id="dlg-name">Sage Vashistha</div>
+          <div class="dialogue-speaker-title" id="dlg-title">Royal Preceptor of Ayodhya</div>
+        </div>
+      </div>
+      <div class="dialogue-box">
+        <div class="dialogue-lines" id="dlg-lines"></div>
+        <div class="dialogue-cursor">▼</div>
+      </div>
+    </div>
+
+    <!-- PANEL D: Choice -->
+    <div class="story-panel" id="panel-choice" style="display:none">
+      <div class="choice-prompt" id="choice-prompt"></div>
+      <div class="choice-buttons" id="choice-buttons"></div>
+    </div>
+
+    <!-- PANEL E: Tutorial overlay -->
+    <div class="story-panel" id="panel-tutorial" style="display:none">
+      <div class="tutorial-box">
+        <div class="tutorial-header">
+          <span class="tutorial-icon" id="tut-icon">📖</span>
+          <span class="tutorial-heading" id="tut-heading">Game Mechanic</span>
+        </div>
+        <ul class="tutorial-list" id="tut-list"></ul>
+      </div>
+    </div>
+
+    <!-- PANEL F: Item received -->
+    <div class="story-panel" id="panel-item" style="display:none">
+      <div class="item-received-wrap">
+        <div class="item-received-glyph" id="item-glyph">🌿</div>
+        <div class="item-received-name" id="item-name">Item Name</div>
+        <div class="item-received-desc" id="item-desc">Item description here.</div>
+        <div class="item-badge">✦ Added to Amrit Pouch ✦</div>
+      </div>
+    </div>
+
+    <!-- PANEL G: Seal earned -->
+    <div class="story-panel" id="panel-seal" style="display:none">
+      <div class="seal-earned-wrap">
+        <div class="seal-glyph-ring">
+          <div class="seal-glyph" id="seal-glyph">☸</div>
+        </div>
+        <div class="seal-earned-name" id="seal-name">Seal Name</div>
+        <div class="seal-earned-desc" id="seal-desc">Seal description.</div>
+        <div class="seal-badge">✦ Dharma Seal Earned ✦</div>
+      </div>
+    </div>
+
+    <!-- PANEL H: Battle announcement -->
+    <div class="story-panel" id="panel-battle-announce" style="display:none">
+      <div class="battle-announce-wrap">
+        <div class="battle-announce-icon">⚔</div>
+        <div class="battle-announce-text" id="battle-announce-text">A battle begins!</div>
+        <div class="battle-announce-sub">Prepare your formation and Astras.</div>
+        <button class="btn-primary" id="btn-enter-battle">Enter Battle →</button>
+      </div>
+    </div>
+
+    <!-- PANEL I: Story ending / cliffhanger -->
+    <div class="story-panel" id="panel-ending" style="display:none">
+      <div class="ending-wrap">
+        <div class="ending-ornament">॥ ॐ ॥</div>
+        <div class="ending-text" id="ending-text"></div>
+        <div class="ending-subtext" id="ending-subtext"></div>
+        <div class="ending-ornament" style="font-size:1rem;">✦ &nbsp;Forge Your Vow. Restore the Light.&nbsp; ✦</div>
+        <button class="btn-primary" id="btn-story-again">Begin Again →</button>
+      </div>
+    </div>
+
+    <!-- PANEL J: Starter selection (embedded in story) -->
+    <div class="story-panel" id="panel-starter-story" style="display:none">
+      <p class="screen-sub" id="starter-story-prompt" style="text-align:center; margin-bottom:1rem;">
+        Approach the pedestal. Which spirit calls to you?
+      </p>
+      <div id="starter-grid-story" class="starter-grid-story"></div>
+      <div id="starter-story-chosen-msg" style="display:none"></div>
+    </div>
+
+  </div><!-- /.story-stage -->
+
+  <!-- ─ Continue button ─────────────────────────────────────────── -->
+  <div class="story-controls">
+    <button class="btn-continue" id="btn-continue">Continue →</button>
+  </div>
+
+  <!-- ─ Seals sidebar ───────────────────────────────────────────── -->
+  <div class="seals-sidebar" id="seals-sidebar">
+    <div class="seals-sidebar-label">Seals Earned</div>
+    <div id="seals-list"></div>
+  </div>
+
+</section><!-- /#screen-story -->
+
+
+<!-- ================================================================
+  SCREEN 3 — BATTLE
+  ================================================================ -->
+<section id="screen-battle" class="screen">
+
+  <!-- ── FIELD (top row, full width) ────────────────────────────── -->
+  <div class="battle-field">
+
+    <!-- Enemy combatant panel -->
+    <div class="combatant-panel enemy-panel">
+      <div class="combatant-glyph" id="active-enemy-glyph">❓</div>
+      <div class="combatant-info">
+        <div class="combatant-header">
+          <span class="combatant-name" id="active-enemy-name">—</span>
+          <span class="combatant-type-badge" id="active-enemy-type">—</span>
+          <span class="combatant-level" id="active-enemy-level">Lv —</span>
+        </div>
+        <div class="hp-bar-main-wrap">
+          <span class="hp-label">HP</span>
+          <div class="hp-bar-main-track">
+            <div class="hp-bar-main-fill" id="hp-main-fill-enemy" style="width:100%"></div>
+          </div>
+          <span class="hp-number" id="active-enemy-hp">— / —</span>
+        </div>
+        <div class="tapas-bar-main-wrap">
+          <span class="tapas-label">⚡</span>
+          <div class="tapas-bar-main-track">
+            <div class="tapas-bar-main-fill" id="tapas-main-fill-enemy" style="width:40%"></div>
+          </div>
+          <span class="tapas-number" id="active-enemy-tapas">— / 100 ⚡</span>
+        </div>
+      </div>
+      <div class="combatant-meta">
+        <div class="combatant-vyuha" id="active-enemy-vyuha">—</div>
+        <div class="active-status-display" id="active-enemy-status"></div>
+      </div>
+    </div>
+
+    <!-- Enemy team row -->
+    <div class="team-row" id="team-row-enemy"></div>
+
+    <!-- Type effectiveness flash -->
+    <div id="effectiveness-msg"></div>
+
+    <!-- Player team row -->
+    <div class="team-row" id="team-row-player"></div>
+
+    <!-- Player combatant panel -->
+    <div class="combatant-panel player-panel">
+      <div class="combatant-glyph" id="active-player-glyph">❓</div>
+      <div class="combatant-info">
+        <div class="combatant-header">
+          <span class="combatant-name" id="active-player-name">—</span>
+          <span class="combatant-type-badge" id="active-player-type">—</span>
+          <span class="combatant-level" id="active-player-level">Lv —</span>
+        </div>
+        <div class="hp-bar-main-wrap">
+          <span class="hp-label">HP</span>
+          <div class="hp-bar-main-track">
+            <div class="hp-bar-main-fill" id="hp-main-fill-player" style="width:100%"></div>
+          </div>
+          <span class="hp-number" id="active-player-hp">— / —</span>
+        </div>
+        <div class="tapas-bar-main-wrap">
+          <span class="tapas-label">⚡</span>
+          <div class="tapas-bar-main-track">
+            <div class="tapas-bar-main-fill" id="tapas-main-fill-player" style="width:40%"></div>
+          </div>
+          <span class="tapas-number" id="active-player-tapas">— / 100 ⚡</span>
+        </div>
+      </div>
+      <div class="combatant-meta">
+        <div class="combatant-vyuha" id="active-player-vyuha">—</div>
+        <div class="active-status-display" id="active-player-status"></div>
+      </div>
+    </div>
+
+  </div><!-- /.battle-field -->
+
+  <!-- context banner for story battles -->
+  <div class="battle-context-banner" id="battle-context-banner" style="display:none">
+    <span id="battle-context-text"></span>
+  </div>
+
+  <!-- ── BATTLE LOG ──────────────────────────────────────────────── -->
+  <div class="log-area">
+    <div class="log-header">⚔ Battle Chronicle</div>
+    <div id="battle-log"></div>
+  </div>
+
+  <!-- ── MANDALA INTERFACE ─────────────────────────────────────────── -->
+  <div class="mandala-panel">
+    <div class="mandala-header">✦ Mandala — Command Interface ✦</div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active-tab" data-tab="astras">🔥 Astras</button>
+      <button class="tab-btn" data-tab="switch">🔄 Switch</button>
+      <button class="tab-btn" data-tab="vyuha">⚔ Vyuha</button>
+    </div>
+
+    <div id="tab-astras" class="tab-panel active-panel">
+      <div id="astra-buttons">
+        <p style="color:var(--text-dim); font-size:0.8rem; font-style:italic;">
+          Choose your starter to unlock Astras.
+        </p>
+      </div>
+    </div>
+
+    <div id="tab-switch" class="tab-panel">
+      <p style="color:var(--gold); font-size:0.72rem; font-style:italic; margin-bottom:0.3rem;">
+        Switching is free but uses your turn. A fainted Atma switches automatically.
+      </p>
+      <div id="switch-buttons">
+        <p style="color:var(--text-dim); font-size:0.8rem; font-style:italic;">
+          No reserves available.
+        </p>
+      </div>
+    </div>
+
+    <div id="tab-vyuha" class="tab-panel">
+      <p style="color:var(--gold); font-size:0.72rem; font-style:italic; margin-bottom:0.3rem;">
+        Changing formation costs <strong style="color:var(--tapas-clr)">20 ⚡ Tapas</strong>
+        and uses your turn.
+      </p>
+      <div id="vyuha-buttons"></div>
+    </div>
+
+  </div><!-- /.mandala-panel -->
+
+  <!-- ── RESULT BAR ────────────────────────────────────────────────── -->
+  <div class="result-bar">
+    <div id="battle-result"></div>
+    <button id="btn-return-story" class="btn-primary" style="display:none">Return to Story →</button>
+    <button id="btn-play-again" class="btn-primary" style="display:none">Play Again →</button>
+  </div>
+
+</section><!-- /#screen-battle -->
+
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -8,10 +8,15 @@
 import { Atma } from "./engine/Atma.js";
 import { BattleEngine } from "./engine/BattleEngine.js";
 import { StoryEngine } from "./engine/StoryEngine.js";
+import { OverworldEngine } from "./engine/OverworldEngine.js";
+import { EncounterEngine } from "./engine/EncounterEngine.js";
+import { PlayerState, ITEMS, CRAFT_RECIPES } from "./engine/PlayerState.js";
 import { ATMA_SPECIES, STARTER_IDS, WILD_IDS } from "./data/atmas.js";
 import { ASTRAS, getAstra } from "./data/astras.js";
 import { TYPE_COLORS } from "./data/types.js";
 import { VYUHAS, vyuhaList } from "./engine/VyuhaGrid.js";
+import { MAPS } from "./data/maps.js";
+import { CHARACTERS } from "./data/characters.js";
 
 // ─── DOM helpers ─────────────────────────────────────────────────────
 
@@ -31,11 +36,16 @@ function showScreen(id) {
 
 let story = null;
 let battle = null;
+let overworld = null;
+let encounter = null;          // active EncounterEngine instance
 let playerStarterId = null;
 let battleOverFlag = false;
 let inStoryMode = true;        // false = free-battle mode (play again)
+let isWildBattle = false;      // true when battle was triggered by overworld encounter
+let currentWildEncounter = null;  // { wildAtma, speciesId, level, zoneId }
 let currentBattleSpec = null;  // the story beat that launched current battle
 let playerProgressLevel = 5;   // increases as story progresses
+let _owNpcDialogue = null;     // active NPC dialogue state { lines, index }
 
 // Boss Atma inline species registry — injected when story battles start
 const INLINE_SPECIES = {
@@ -248,7 +258,19 @@ function renderTutorial(beat) {
 
 // ─── Panel F — Item ──────────────────────────────────────────────────
 
+const STORY_ITEM_ID_MAP = {
+  "Sanjeevani Extract": "sanjeevaniExtract",
+  "Soma-Rasa": "somaRasa",
+  "Tulsi Leaf": "tulsiLeaf",
+  "Binding Mantra Scroll": "bindingMantra",
+};
+
 function renderItem(beat) {
+  const itemId = STORY_ITEM_ID_MAP[beat.itemName || ""];
+  if (itemId) {
+    PlayerState.addItem(itemId, 1);
+  }
+
   $("#item-glyph").textContent = beat.itemGlyph || "📦";
   $("#item-name").textContent = beat.itemName || "";
   $("#item-desc").textContent = beat.itemDesc || "";
@@ -262,6 +284,7 @@ function renderSeal(beat) {
   $("#seal-glyph").textContent = beat.sealGlyph || "☸";
   $("#seal-name").textContent = beat.sealName || "";
   $("#seal-desc").textContent = beat.sealDesc || "";
+  PlayerState.addSeal(beat.sealName || "Unknown Seal", beat.sealGlyph || "☸", beat.sealDesc || "");
   show("#panel-seal");
   show("#btn-continue");
   addSealToSidebar(beat);
@@ -758,32 +781,11 @@ function logMessage(msg) {
   log.scrollTop = log.scrollHeight;
 }
 
-// ─── Battle end ───────────────────────────────────────────────────────
-
+// ─── Battle end — handles both story battles and wild encounters ───────
+// (Full implementation in Phase 3 section below)
 function endBattle(winner) {
   battleOverFlag = true;
-  const resultEl = $("#battle-result");
-  if (!resultEl) return;
-
-  const spec = currentBattleSpec;
-
-  if (winner === "player") {
-    resultEl.textContent = spec?.winText || "🌟 Victory! The shadow is purified. Dharma shines.";
-    resultEl.style.color = "#ffd700";
-  } else if (winner === "enemy") {
-    resultEl.textContent = spec?.loseText || "💫 Defeated. But the seeker's path is never truly closed.";
-    resultEl.style.color = "#cc77ff";
-  } else {
-    resultEl.textContent = "⚖ A draw — both forces spent. The Dharma scales remain balanced.";
-    resultEl.style.color = "#9ad0ec";
-  }
-  resultEl.style.display = "block";
-
-  if (inStoryMode) {
-    show("#btn-return-story");
-  } else {
-    show("#btn-play-again");
-  }
+  _dispatchBattleEnd(winner);
 }
 
 // ─── Return to story after battle ────────────────────────────────────
@@ -869,5 +871,721 @@ function setupTabButtons() {
       btn.classList.add("active-tab");
       $(`#tab-${tab}`) && $(`#tab-${tab}`).classList.add("active-panel");
     });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// ─── PHASE 3: OVERWORLD, ENCOUNTERS & BINDING ─────────────────────────
+// ══════════════════════════════════════════════════════════════════════
+
+// ─── Route to overworld from story ending ─────────────────────────────
+
+window.addEventListener("DOMContentLoaded", () => {
+  const enterOverworldBtn = $("#btn-enter-overworld");
+  if (enterOverworldBtn) {
+    enterOverworldBtn.addEventListener("click", () => {
+      if (!playerStarterId) playerStarterId = "vaanJyoti";
+      PlayerState.initWithStarter(playerStarterId);
+      if (story) PlayerState.syncKarmaFromStory(story.karma || {});
+      switchToOverworld("ayodhyaOutskirts");
+    });
+  }
+});
+
+// ─── Switch to the overworld screen ───────────────────────────────────
+
+function switchToOverworld(mapId, startX, startY) {
+  encounter = encounter || new EncounterEngine();
+
+  const canvas = $("#overworld-canvas");
+  if (!canvas) return;
+
+  // Stop old overworld if running
+  if (overworld) { overworld.stop(); overworld = null; }
+
+  const pos = PlayerState.position;
+  const targetX = startX ?? (pos.mapId === mapId ? pos.tileX : undefined);
+  const targetY = startY ?? (pos.mapId === mapId ? pos.tileY : undefined);
+
+  overworld = new OverworldEngine({
+    canvas,
+    mapId,
+    playerX: targetX,
+    playerY: targetY,
+    onEncounter: (enc) => handleOverworldEncounter(enc),
+    onPortal:    (portal) => handleOverworldPortal(portal),
+    onNpcTalk:   (npc)    => handleOverworldNpc(npc),
+    onShrine:    (shrine) => handleOverworldShrine(shrine),
+    onStep:      (x, y, tileType) => handleOverworldStep(x, y, tileType, mapId),
+  });
+
+  showScreen("screen-overworld");
+  overworld.start();
+  refreshOwHud();
+
+  // Setup D-pad for mobile
+  $$(".dpad-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const dir = btn.dataset.dir;
+      if (dir && overworld) overworld.handleDpadPress(dir);
+    });
+  });
+}
+
+// ─── Overworld HUD update ─────────────────────────────────────────────
+
+function refreshOwHud() {
+  const mapDef = MAPS[PlayerState.position.mapId] || MAPS["ayodhyaOutskirts"];
+  const mapNameEl = $("#ow-map-name");
+  const mapSubEl  = $("#ow-map-sub");
+  if (mapNameEl) mapNameEl.textContent = mapDef.name;
+  if (mapSubEl)  mapSubEl.textContent  = mapDef.subtitle || "";
+  const stepsEl = $("#ow-steps");
+  if (stepsEl) stepsEl.textContent = PlayerState.steps;
+}
+
+// ─── Step handler — runs encounter check ──────────────────────────────
+
+function handleOverworldStep(x, y, tileType, mapId) {
+  // Update step counter display
+  const stepsEl = $("#ow-steps");
+  if (stepsEl) stepsEl.textContent = PlayerState.steps;
+
+  if (!encounter) return;
+  const result = encounter.checkStep(mapId, x, y, tileType);
+  if (result) {
+    overworld.lock();
+    triggerWildEncounter(result);
+  }
+}
+
+// ─── Encounter trigger & transition ───────────────────────────────────
+
+function triggerWildEncounter(enc) {
+  currentWildEncounter = enc;
+  const species = ATMA_SPECIES[enc.speciesId];
+
+  // Show encounter flash overlay
+  const flashEl = $("#ow-encounter-flash");
+  const glyphEl = $("#ow-encounter-glyph");
+  const nameEl  = $("#ow-encounter-name");
+  if (flashEl) {
+    if (glyphEl) glyphEl.textContent = species?.glyph || "❓";
+    if (nameEl)  nameEl.textContent  = species?.name  || enc.speciesId;
+    flashEl.classList.add("encounter-active");
+
+    setTimeout(() => {
+      flashEl.classList.remove("encounter-active");
+      launchWildBattle(enc);
+    }, 1400);
+  } else {
+    launchWildBattle(enc);
+  }
+}
+
+// ─── Launch a wild Atma battle ─────────────────────────────────────────
+
+function launchWildBattle(enc) {
+  if (!playerStarterId) playerStarterId = "vaanJyoti";
+  isWildBattle = true;
+
+  // Player team: lead = whatever starter, rest from party
+  const party = PlayerState.party.length > 0
+    ? PlayerState.party
+    : [new Atma(playerStarterId, playerProgressLevel || 5)];
+
+  const playerTeam = party.slice(0, 3);
+  const enemyTeam  = [enc.wildAtma]; // solo wild Atma
+
+  const wildSpecies = ATMA_SPECIES[enc.speciesId];
+
+  battle = new BattleEngine({
+    playerTeam,
+    enemyTeam,
+    playerVyuhaId: "garuda",
+    enemyVyuhaId:  "garuda",
+    wildMode:      true,
+    onEvent: (evt) => {
+      handleBattleEvent(evt);
+      // Refresh bind UI on damage events
+      if (evt.type === "damage" && evt.side === "enemy") {
+        refreshBindTab(enc.wildAtma);
+      }
+    },
+  });
+
+  battleOverFlag = false;
+  buildBattleUI(playerTeam, enemyTeam);
+
+  // Show bind tab for wild battles
+  const bindTabBtn = $("#tab-btn-bind");
+  if (bindTabBtn) bindTabBtn.style.display = "";
+
+  showScreen("screen-battle");
+  refreshBattleUI();
+  refreshBindTab(enc.wildAtma);
+
+  // Context banner
+  const banner = $("#battle-context-banner");
+  const bannerText = $("#battle-context-text");
+  if (banner && bannerText) {
+    bannerText.textContent = `A wild ${wildSpecies?.name || enc.speciesId} (Lv ${enc.level}) appeared!`;
+    show(banner);
+  }
+
+  logMessage(`🌿 A wild ${wildSpecies?.name || enc.speciesId} (Lv ${enc.level}) appeared!`);
+  logMessage(`Type: ${wildSpecies?.type || "—"} · Weaken it below 60% HP to attempt Binding.`);
+
+  // Add "Return to Overworld" button dynamically
+  const resultBar = $(".result-bar");
+  if (resultBar && !$("#btn-return-overworld")) {
+    const owBtn = document.createElement("button");
+    owBtn.id = "btn-return-overworld";
+    owBtn.className = "btn-primary";
+    owBtn.textContent = "Return to Overworld →";
+    owBtn.style.display = "none";
+    owBtn.addEventListener("click", () => returnToOverworld());
+    resultBar.appendChild(owBtn);
+  }
+}
+
+// ─── Bind tab UI ──────────────────────────────────────────────────────
+
+function refreshBindTab(wildAtma) {
+  const bindArea  = $("#bind-area");
+  if (!bindArea || !wildAtma || !encounter) return;
+
+  const canBind = encounter.canAttemptBind(wildAtma);
+  const rateStr = encounter.bindRateDisplay(wildAtma);
+  const scrollCount = PlayerState.getItemCount("bindingMantra");
+
+  if (wildAtma.isFainted) {
+    bindArea.innerHTML = `<p style="color:var(--text-dim); font-size:0.85rem;">The Atma has fainted — it cannot be bound.</p>`;
+    return;
+  }
+
+  if (!canBind) {
+    const hpPct = Math.round(wildAtma.hpPct * 100);
+    bindArea.innerHTML = `
+      <div class="bind-status">
+        <p style="color:var(--text-dim); font-size:0.82rem;">⚠ HP is at ${hpPct}%. Reduce to 60% or lower to chant the Binding Mantra.</p>
+        <div class="bind-rate-bar-wrap">
+          <div class="bind-rate-bar" style="width:${hpPct}%; background:#764cc0"></div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  bindArea.innerHTML = `
+    <div class="bind-ready">
+      <div class="bind-mantra-label">🔮 Binding Mantra Available</div>
+      <div class="bind-rate-display">Success chance: <strong>${rateStr}</strong></div>
+      <p style="color:var(--text-dim); font-size:0.75rem; margin:0.3rem 0 0.6rem;">
+        Lower HP increases the chance. Your Atma's Bhakti also helps.
+      </p>
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.5rem; align-items:center;">
+        <button class="btn-bind-attempt" id="btn-do-bind">🔮 Chant Binding Mantra</button>
+        <button class="btn-small" id="btn-use-bind-scroll" ${scrollCount <= 0 ? "disabled" : ""}>📜 Use Scroll (${scrollCount})</button>
+      </div>
+    </div>`;
+
+  const bindBtn = $("#btn-do-bind");
+  if (bindBtn) {
+    bindBtn.addEventListener("click", () => {
+      if (battleOverFlag) return;
+      attemptBinding(wildAtma);
+    });
+  }
+
+  const bindScrollBtn = $("#btn-use-bind-scroll");
+  if (bindScrollBtn) {
+    bindScrollBtn.addEventListener("click", () => {
+      if (battleOverFlag) return;
+      if (PlayerState.useItem("bindingMantra", wildAtma)) {
+        logMessage("📜 You invoke a Binding Mantra Scroll. The next chant gains a stronger resonance.");
+        refreshBindTab(wildAtma);
+      }
+    });
+  }
+}
+
+// ─── Binding attempt ──────────────────────────────────────────────────
+
+function attemptBinding(wildAtma) {
+  if (!encounter || battleOverFlag) return;
+
+  const userAtma = battle.player.team[battle.player.active];
+  const result   = encounter.attemptBind(wildAtma, userAtma);
+
+  logMessage(`🔮 Binding Mantra: ${result.message}`);
+
+  if (result.success) {
+    battleOverFlag = true;
+    const rewardMsgs = encounter.awardWildRewards(wildAtma, PlayerState.party, true, currentWildEncounter?.zoneId);
+    rewardMsgs.forEach((m) => logMessage(m));
+
+    PlayerState.save();
+
+    // Show result
+    const resultEl = $("#battle-result");
+    if (resultEl) {
+      resultEl.textContent = `✦ ${wildAtma.name} has been bound to your Dharma! ${
+        result.destination === "party" ? "Added to party." : "Sent to collection."
+      }`;
+      resultEl.style.color = "#c8973a";
+      resultEl.style.display = "block";
+    }
+
+    // Ripple on bind tab
+    const bindArea = $("#bind-area");
+    if (bindArea) {
+      bindArea.innerHTML = `<div class="bind-success-msg">
+        ✦ ${wildAtma.glyph} <strong>${wildAtma.name}</strong> bound!<br>
+        <span style="color:var(--text-dim); font-size:0.8rem">${result.destination === "party" ? "Added to your party." : "Sent to your collection."}</span>
+      </div>`;
+    }
+
+    hide("#tab-btn-bind");
+    show("#btn-return-overworld");
+  } else {
+    refreshBindTab(wildAtma);
+    logMessage("The spirit resists. Continue the battle.");
+  }
+}
+
+// ─── Wild battle end ──────────────────────────────────────────────────
+
+// ─── endBattle dispatcher (wild + story) ─────────────────────────────
+function _dispatchBattleEnd(winner) {
+  battleOverFlag = true;
+  const resultEl = $("#battle-result");
+  if (!resultEl) return;
+
+  if (isWildBattle) {
+    if (winner === "player") {
+      // Defeated the wild Atma (not bound)
+      const wildAtma = currentWildEncounter?.wildAtma;
+      if (wildAtma && encounter) {
+        const msgs = encounter.awardWildRewards(wildAtma, PlayerState.party, false, currentWildEncounter?.zoneId);
+        msgs.forEach((m) => logMessage(m));
+        PlayerState.save();
+      }
+      resultEl.textContent = "⚔ The wild Atma was defeated. It fled into the forest.";
+      resultEl.style.color = "#ffd700";
+    } else {
+      // Lost to wild Atma — blackout
+      resultEl.textContent = "💫 Defeated... You wake up at the last shrine you visited.";
+      resultEl.style.color = "#cc77ff";
+      PlayerState.healPartyFull();
+    }
+    resultEl.style.display = "block";
+    hide("#tab-btn-bind");
+    show("#btn-return-overworld");
+  } else {
+    const spec = currentBattleSpec;
+    if (winner === "player") {
+      resultEl.textContent = spec?.winText || "🌟 Victory! The shadow is purified. Dharma shines.";
+      resultEl.style.color = "#ffd700";
+    } else if (winner === "enemy") {
+      resultEl.textContent = spec?.loseText || "💫 Defeated. But the seeker's path is never truly closed.";
+      resultEl.style.color = "#cc77ff";
+    } else {
+      resultEl.textContent = "⚖ A draw.";
+      resultEl.style.color = "#9ad0ec";
+    }
+    resultEl.style.display = "block";
+    if (inStoryMode) show("#btn-return-story");
+    else             show("#btn-play-again");
+  }
+}
+
+function returnToOverworld() {
+  // Clean up wild battle state
+  isWildBattle = false;
+  currentWildEncounter = null;
+  battleOverFlag = false;
+  battle = null;
+
+  const resultEl = $("#battle-result");
+  if (resultEl) { resultEl.style.display = "none"; resultEl.textContent = ""; }
+  hide("#btn-return-overworld");
+  hide("#battle-context-banner");
+  hide("#tab-btn-bind");
+
+  const bindArea = $("#bind-area");
+  if (bindArea) bindArea.innerHTML = `<p style="color:var(--text-dim); font-size:0.8rem; font-style:italic;">Weaken the wild Atma below 60% HP to attempt binding.</p>`;
+
+  // Return to overworld at same position
+  if (overworld) {
+    showScreen("screen-overworld");
+    overworld.unlock();
+    refreshOwHud();
+  } else {
+    switchToOverworld(PlayerState.position.mapId, PlayerState.position.tileX, PlayerState.position.tileY);
+  }
+}
+
+// ─── Portal handler ──────────────────────────────────────────────────
+
+function handleOverworldPortal(portal) {
+  if (portal.storyReturn) {
+    // Return to story screen
+    if (overworld) { overworld.stop(); overworld = null; }
+    showScreen("screen-story");
+    return;
+  }
+
+  const requiredSealCount = Number(portal.requiredSeals || 0);
+  if (requiredSealCount > 0 && PlayerState.seals.length < requiredSealCount) {
+    const textEl = $("#ow-locked-text");
+    if (textEl) {
+      textEl.innerHTML = `This path is sealed by old Dharma marks.<br>
+        <em>Earn ${requiredSealCount} seal${requiredSealCount === 1 ? "" : "s"} from the story route to open the southern gate.</em>`;
+    }
+    show("#ow-locked-overlay");
+    const closeBtn = $("#ow-locked-close");
+    if (closeBtn) {
+      const newBtn = closeBtn.cloneNode(true);
+      closeBtn.parentNode.replaceChild(newBtn, closeBtn);
+      newBtn.addEventListener("click", () => {
+        hide("#ow-locked-overlay");
+        if (overworld) overworld.unlock();
+      });
+    }
+    return;
+  }
+
+  if (portal.targetMapId === "LOCKED") {
+    show("#ow-locked-overlay");
+    const closeBtn = $("#ow-locked-close");
+    if (closeBtn) {
+      const newBtn = closeBtn.cloneNode(true);
+      closeBtn.parentNode.replaceChild(newBtn, closeBtn);
+      newBtn.addEventListener("click", () => {
+        hide("#ow-locked-overlay");
+        if (overworld) overworld.unlock();
+      });
+    }
+    return;
+  }
+  if (portal.targetMapId === "STORY") {
+    if (overworld) { overworld.stop(); overworld = null; }
+    showScreen("screen-story");
+    return;
+  }
+  // Map transition
+  if (overworld) {
+    overworld.loadMap(portal.targetMapId, portal.targetX, portal.targetY);
+    if (encounter) encounter.resetCooldown();
+    overworld.unlock();
+    refreshOwHud();
+  }
+}
+
+// ─── NPC handler ──────────────────────────────────────────────────────
+
+function handleOverworldNpc(npcDef) {
+  const character = CHARACTERS[npcDef.characterId] || { name: npcDef.id, glyph: "👤", color: "#c8973a" };
+  const lines = npcDef.dialogueLines || ["…"];
+  _owNpcDialogue = { lines, index: 0, character };
+
+  const overlay = $("#ow-dialogue-overlay");
+  const glyphEl = $("#ow-dlg-glyph");
+  const nameEl  = $("#ow-dlg-name");
+  const textEl  = $("#ow-dlg-text");
+  const progEl  = $("#ow-dlg-progress");
+
+  if (glyphEl) { glyphEl.textContent = character.glyph || "👤"; glyphEl.style.color = character.color; }
+  if (nameEl)  { nameEl.textContent = character.name; nameEl.style.color = character.color; }
+  if (textEl)  textEl.textContent = lines[0];
+  if (progEl)  progEl.textContent = `1 / ${lines.length}`;
+
+  show(overlay);
+
+  // Wire next button (clone to clear previous listeners)
+  const nextBtn = $("#ow-dlg-next");
+  if (nextBtn) {
+    const newBtn = nextBtn.cloneNode(true);
+    nextBtn.parentNode.replaceChild(newBtn, nextBtn);
+    newBtn.addEventListener("click", advanceNpcDialogue);
+  }
+}
+
+function advanceNpcDialogue() {
+  if (!_owNpcDialogue) return;
+  _owNpcDialogue.index++;
+  if (_owNpcDialogue.index >= _owNpcDialogue.lines.length) {
+    hide("#ow-dialogue-overlay");
+    _owNpcDialogue = null;
+    if (overworld) overworld.unlock();
+    return;
+  }
+  const textEl = $("#ow-dlg-text");
+  const progEl = $("#ow-dlg-progress");
+  if (textEl) textEl.textContent = _owNpcDialogue.lines[_owNpcDialogue.index];
+  if (progEl) progEl.textContent = `${_owNpcDialogue.index + 1} / ${_owNpcDialogue.lines.length}`;
+}
+
+// ─── Shrine handler ───────────────────────────────────────────────────
+
+function handleOverworldShrine(shrineDef) {
+  const overlay = $("#ow-shrine-overlay");
+  const textEl  = $("#ow-shrine-text");
+  const box     = overlay?.querySelector(".ow-shrine-box");
+
+  if (!overlay || !textEl || !box) return;
+
+  textEl.textContent = shrineDef.text || "A sacred inscription…";
+
+  let actionsWrap = box.querySelector(".ow-shrine-actions");
+  if (!actionsWrap) {
+    actionsWrap = document.createElement("div");
+    actionsWrap.className = "ow-shrine-actions";
+    box.appendChild(actionsWrap);
+  }
+
+  const restBtn = actionsWrap.querySelector("#ow-shrine-rest") || document.createElement("button");
+  restBtn.id = "ow-shrine-rest";
+  restBtn.className = "btn-continue";
+  restBtn.textContent = "Rest & Recover";
+  if (!restBtn.parentNode) actionsWrap.appendChild(restBtn);
+
+  const closeBtn = $("#ow-shrine-close");
+  if (closeBtn) {
+    const newBtn = closeBtn.cloneNode(true);
+    closeBtn.parentNode.replaceChild(newBtn, closeBtn);
+    newBtn.addEventListener("click", () => {
+      hide("#ow-shrine-overlay");
+      if (overworld) overworld.unlock();
+    });
+  }
+
+  restBtn.onclick = () => {
+    const healed = [];
+    PlayerState.party.forEach((atma) => {
+      const before = atma.hp;
+      atma.heal(atma.maxHp);
+      atma.regenTapas(35);
+      if (atma.status) {
+        atma.status = null;
+        atma.statusTurns = 0;
+      }
+      if (before < atma.maxHp || atma.tapas < atma.maxTapas) healed.push(atma.name);
+    });
+
+    if (healed.length > 0) {
+      PlayerState.addItem("sanjeevaniExtract", 1);
+      PlayerState.save();
+      logMessage(`🪔 The shrine answers. ${healed.join(", ")} are restored and renewed.`);
+    } else {
+      PlayerState.save();
+      logMessage("🪔 The shrine hums softly, but your party is already at its fullest strength.");
+    }
+
+    buildPartyPanel();
+    hide("#ow-shrine-overlay");
+    if (overworld) overworld.unlock();
+  };
+
+  show(overlay);
+}
+
+// ─── "Back to Story" button from overworld ────────────────────────────
+
+window.addEventListener("DOMContentLoaded", () => {
+  const backBtn = $("#btn-ow-back-story");
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      if (overworld) { overworld.stop(); overworld = null; }
+      showScreen("screen-story");
+    });
+  }
+
+  // Party panel
+  const openPartyBtn  = $("#btn-open-party");
+  const closePartyBtn = $("#btn-close-party");
+  if (openPartyBtn)  openPartyBtn.addEventListener("click",  () => { buildPartyPanel(); show("#ow-party-panel"); });
+  if (closePartyBtn) closePartyBtn.addEventListener("click", () => hide("#ow-party-panel"));
+});
+
+// ─── Party panel ──────────────────────────────────────────────────────
+
+function buildPartyPanel() {
+  const list = $("#ow-party-list");
+  const countEl = $("#ow-collection-count");
+  const stepsEl = $("#ow-steps-party");
+
+  if (countEl) countEl.textContent = PlayerState.collectedCount;
+  if (stepsEl) stepsEl.textContent = PlayerState.steps;
+
+  if (!list) return;
+  list.innerHTML = "";
+
+  const partySection = document.createElement("div");
+  partySection.className = "ow-party-section";
+  partySection.innerHTML = `<div class="party-section-title">Active Party</div>`;
+  list.appendChild(partySection);
+
+  if (PlayerState.party.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "party-empty";
+    empty.textContent = "Your party is empty. Bind wild Atmas to form your team.";
+    partySection.appendChild(empty);
+  }
+
+  PlayerState.party.forEach((atma, i) => {
+    const color = TYPE_COLORS[atma.type] || "#888";
+    const hpPct = Math.round(atma.hpPct * 100);
+    const card = document.createElement("div");
+    card.className = "party-card";
+    card.style.borderColor = color;
+    card.innerHTML = `
+      <span class="party-card-glyph" style="background:${color}22">${atma.glyph}</span>
+      <div class="party-card-info">
+        <div class="party-card-name" style="color:${color}">${atma.name}</div>
+        <div class="party-card-meta">Lv ${atma.level} · ${atma.type}</div>
+        <div class="party-card-hp">
+          <span>HP ${atma.hp}/${atma.maxHp}</span>
+          <div class="hp-bar-wrap" style="width:80px; display:inline-block; margin-left:0.4rem">
+            <div class="hp-bar" style="width:${hpPct}%; background:${hpPct > 50 ? "#4caf50" : hpPct > 20 ? "#ff9800" : "#f44336"}"></div>
+          </div>
+        </div>
+        ${atma.status ? `<div style="color:#ff7733; font-size:0.72rem">Status: ${atma.status}</div>` : ""}
+        <div style="color:var(--tapas-clr); font-size:0.72rem">Bhakti ❤ ${Math.round(atma.bhakti)}/100</div>
+      </div>
+    `;
+
+    const actionRow = document.createElement("div");
+    actionRow.className = "party-action-row";
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "btn-small";
+    removeBtn.textContent = "Remove from Party";
+    removeBtn.addEventListener("click", () => {
+      PlayerState.removeFromParty(i);
+      buildPartyPanel();
+    });
+
+    const healBtn = document.createElement("button");
+    healBtn.className = "btn-small";
+    healBtn.textContent = `Heal ${PlayerState.getItemCount("sanjeevaniExtract")}`;
+    healBtn.disabled = PlayerState.getItemCount("sanjeevaniExtract") <= 0;
+    healBtn.addEventListener("click", () => {
+      if (PlayerState.useItem("sanjeevaniExtract", atma)) {
+        buildPartyPanel();
+      }
+    });
+
+    const tapasBtn = document.createElement("button");
+    tapasBtn.className = "btn-small";
+    tapasBtn.textContent = `Tapas ${PlayerState.getItemCount("somaRasa")}`;
+    tapasBtn.disabled = PlayerState.getItemCount("somaRasa") <= 0;
+    tapasBtn.addEventListener("click", () => {
+      if (PlayerState.useItem("somaRasa", atma)) {
+        buildPartyPanel();
+      }
+    });
+
+    const evolveBtn = document.createElement("button");
+    evolveBtn.className = "btn-small";
+    evolveBtn.textContent = atma.canEvolve() ? "Sadhana" : (atma.evolutionStage ? "Ascended" : "Sadhana");
+    evolveBtn.disabled = !atma.canEvolve();
+    evolveBtn.addEventListener("click", () => {
+      if (atma.evolve()) {
+        PlayerState.save();
+        logMessage(`🕉 ${atma.name} completes Sadhana and awakens to a new form.`);
+        buildPartyPanel();
+      }
+    });
+
+    actionRow.appendChild(removeBtn);
+    actionRow.appendChild(healBtn);
+    actionRow.appendChild(tapasBtn);
+    actionRow.appendChild(evolveBtn);
+    card.appendChild(actionRow);
+    partySection.appendChild(card);
+  });
+
+  const karmicSection = document.createElement("div");
+  karmicSection.className = "ow-party-section";
+  karmicSection.innerHTML = `
+    <div class="party-section-title">Dharma Ledger</div>
+    <div class="party-card-info">
+      <div style="color:#d6c78b; font-size:0.72rem">Dharma ${PlayerState.karma.dharma || 0} · Shakti ${PlayerState.karma.shakti || 0} · Jnana ${PlayerState.karma.jnana || 0} · Karuna ${PlayerState.karma.karuna || 0}</div>
+      <div style="color:#9ad0ec; font-size:0.72rem">Seals: ${PlayerState.seals.length} · Bind bonus: +${Math.round(PlayerState.getKarmaBonus() * 100)}%</div>
+    </div>
+  `;
+  list.appendChild(karmicSection);
+
+  const collectionSection = document.createElement("div");
+  collectionSection.className = "ow-party-section";
+  collectionSection.innerHTML = `<div class="party-section-title">Spirit Collection</div>`;
+  list.appendChild(collectionSection);
+
+  if (PlayerState.collection.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "party-empty";
+    empty.textContent = "No bound Atmas in your collection yet.";
+    collectionSection.appendChild(empty);
+  } else {
+    PlayerState.collection.forEach((record, idx) => {
+      const species = ATMA_SPECIES[record.speciesId];
+      if (!species) return;
+
+      const color = TYPE_COLORS[species.type] || "#888";
+      const collectionCard = document.createElement("div");
+      collectionCard.className = "party-card party-card-collection";
+      collectionCard.style.borderColor = color;
+      collectionCard.innerHTML = `
+        <span class="party-card-glyph" style="background:${color}22">${species.glyph}</span>
+        <div class="party-card-info">
+          <div class="party-card-name" style="color:${color}">${species.name}</div>
+          <div class="party-card-meta">Lv ${record.level || 1} · ${species.type}</div>
+          <div style="color:var(--text-dim); font-size:0.72rem">Bound record stored in your collection.</div>
+        </div>
+      `;
+
+      const addBtn = document.createElement("button");
+      addBtn.className = "btn-small";
+      addBtn.textContent = PlayerState.party.length >= 6 ? "Party Full" : "Add to Party";
+      addBtn.disabled = PlayerState.party.length >= 6;
+      addBtn.addEventListener("click", () => {
+        if (PlayerState.addToPartyFromCollection(idx)) {
+          buildPartyPanel();
+        }
+      });
+      collectionCard.appendChild(addBtn);
+      collectionSection.appendChild(collectionCard);
+    });
+  }
+
+  const labSection = document.createElement("div");
+  labSection.className = "ow-party-section";
+  labSection.innerHTML = `<div class="party-section-title">Rasayana Lab</div>`;
+  list.appendChild(labSection);
+
+  Object.entries(CRAFT_RECIPES).forEach(([recipeId, recipe]) => {
+    const card = document.createElement("div");
+    card.className = "party-card";
+    card.innerHTML = `
+      <div class="party-card-info">
+        <div class="party-card-name">${recipe.name}</div>
+        <div class="party-card-meta">${recipe.desc}</div>
+        <div style="color:#d6c78b; font-size:0.72rem">Needs: ${Object.entries(recipe.requires).map(([itemId, qty]) => `${qty} ${itemId}`).join(" · ")}</div>
+      </div>
+    `;
+
+    const craftBtn = document.createElement("button");
+    craftBtn.className = "btn-small";
+    craftBtn.textContent = "Craft";
+    craftBtn.disabled = !PlayerState.canCraft(recipeId);
+    craftBtn.addEventListener("click", () => {
+      if (PlayerState.craftItem(recipeId)) {
+        buildPartyPanel();
+        logMessage(`🧪 You crafted ${recipe.name}.`);
+      }
+    });
+    card.appendChild(craftBtn);
+    labSection.appendChild(card);
   });
 }

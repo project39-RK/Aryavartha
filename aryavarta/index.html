@@ -148,7 +148,8 @@
         <div class="ending-text" id="ending-text"></div>
         <div class="ending-subtext" id="ending-subtext"></div>
         <div class="ending-ornament" style="font-size:1rem;">✦ &nbsp;Forge Your Vow. Restore the Light.&nbsp; ✦</div>
-        <button class="btn-primary" id="btn-story-again">Begin Again →</button>
+        <button class="btn-primary" id="btn-enter-overworld">Explore the World → 🗺</button>
+        <button class="btn-secondary" id="btn-story-again" style="margin-top:0.5rem">Begin Again →</button>
       </div>
     </div>
 
@@ -275,6 +276,7 @@
       <button class="tab-btn active-tab" data-tab="astras">🔥 Astras</button>
       <button class="tab-btn" data-tab="switch">🔄 Switch</button>
       <button class="tab-btn" data-tab="vyuha">⚔ Vyuha</button>
+      <button class="tab-btn tab-btn-bind" data-tab="bind" id="tab-btn-bind" style="display:none">🔮 Bind</button>
     </div>
 
     <div id="tab-astras" class="tab-panel active-panel">
@@ -304,6 +306,14 @@
       <div id="vyuha-buttons"></div>
     </div>
 
+    <div id="tab-bind" class="tab-panel">
+      <div id="bind-area">
+        <p style="color:var(--text-dim); font-size:0.8rem; font-style:italic;">
+          Weaken the wild Atma below 60% HP to attempt binding.
+        </p>
+      </div>
+    </div>
+
   </div><!-- /.mandala-panel -->
 
   <!-- ── RESULT BAR ────────────────────────────────────────────────── -->
@@ -314,6 +324,103 @@
   </div>
 
 </section><!-- /#screen-battle -->
+
+
+<!-- ================================================================
+  SCREEN 4 — OVERWORLD
+  ================================================================ -->
+<section id="screen-overworld" class="screen">
+
+  <!-- ─ Top HUD bar ──────────────────────────────────────────────── -->
+  <div class="ow-topbar">
+    <div class="ow-topbar-left">
+      <div class="ow-map-name" id="ow-map-name">Ayodhya Outskirts</div>
+      <div class="ow-map-sub" id="ow-map-sub">The Gates of the Golden City</div>
+    </div>
+    <div class="ow-topbar-center">
+      <span class="ow-hint">Arrow Keys / WASD · Space to interact</span>
+    </div>
+    <div class="ow-topbar-right">
+      <span class="ow-steps-badge">👣 <span id="ow-steps">0</span> steps</span>
+      <button class="btn-small" id="btn-open-party">🎒 Party</button>
+      <button class="btn-small btn-dim" id="btn-ow-back-story">📖 Story</button>
+    </div>
+  </div>
+
+  <!-- ─ Canvas viewport ─────────────────────────────────────────── -->
+  <div class="ow-canvas-wrap" id="ow-canvas-wrap">
+    <canvas id="overworld-canvas"></canvas>
+
+    <!-- Encounter flash overlay (animates on encounter trigger) -->
+    <div class="ow-encounter-flash" id="ow-encounter-flash">
+      <div class="ow-encounter-inner">
+        <div class="ow-encounter-glyph" id="ow-encounter-glyph">❓</div>
+        <div class="ow-encounter-label">A wild Atma appeared!</div>
+        <div class="ow-encounter-name" id="ow-encounter-name">???</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ NPC dialogue overlay ────────────────────────────────────── -->
+  <div class="ow-dialogue-overlay" id="ow-dialogue-overlay" style="display:none">
+    <div class="ow-dialogue-box">
+      <div class="ow-dlg-speaker-row">
+        <span class="ow-dlg-glyph" id="ow-dlg-glyph">👤</span>
+        <span class="ow-dlg-name" id="ow-dlg-name">NPC</span>
+      </div>
+      <div class="ow-dlg-text" id="ow-dlg-text">…</div>
+      <div class="ow-dlg-nav">
+        <span class="ow-dlg-progress" id="ow-dlg-progress">1 / 1</span>
+        <button class="btn-continue" id="ow-dlg-next">Continue →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ Shrine text overlay ─────────────────────────────────────── -->
+  <div class="ow-shrine-overlay" id="ow-shrine-overlay" style="display:none">
+    <div class="ow-shrine-box">
+      <div class="ow-shrine-glyph">🪔</div>
+      <div class="ow-shrine-text" id="ow-shrine-text"></div>
+      <button class="btn-continue" id="ow-shrine-close">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ─ Locked portal overlay ───────────────────────────────────── -->
+  <div class="ow-locked-overlay" id="ow-locked-overlay" style="display:none">
+    <div class="ow-locked-box">
+      <div class="ow-locked-icon">🚧</div>
+      <div class="ow-locked-text" id="ow-locked-text">This path is not yet passable.<br>
+        <em>Continue the Tests of Dharma to unlock the way south.</em>
+      </div>
+      <button class="btn-continue" id="ow-locked-close">Turn Back →</button>
+    </div>
+  </div>
+
+  <!-- ─ Party panel (slide-in from right) ──────────────────────── -->
+  <div class="ow-party-panel" id="ow-party-panel" style="display:none">
+    <div class="ow-party-header">
+      <span class="ow-party-title">🎒 Your Party</span>
+      <button class="btn-small" id="btn-close-party">✕ Close</button>
+    </div>
+    <div id="ow-party-list" class="ow-party-list"></div>
+    <div class="ow-party-footer">
+      <span>Bound Atmas: <b id="ow-collection-count">0</b></span>
+      <span>Steps: <b id="ow-steps-party">0</b></span>
+    </div>
+  </div>
+
+  <!-- ─ Mobile D-pad ────────────────────────────────────────────── -->
+  <div class="ow-dpad" id="ow-dpad">
+    <button class="dpad-btn dpad-up"    data-dir="up">▲</button>
+    <div class="dpad-row">
+      <button class="dpad-btn dpad-left"  data-dir="left">◀</button>
+      <div class="dpad-center-dot">●</div>
+      <button class="dpad-btn dpad-right" data-dir="right">▶</button>
+    </div>
+    <button class="dpad-btn dpad-down"  data-dir="down">▼</button>
+  </div>
+
+</section><!-- /#screen-overworld -->
 
 
 <script type="module" src="src/main.js"></script>

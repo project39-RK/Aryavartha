@@ -102,27 +102,36 @@ The GDD's 4-month roadmap directly aligns with this approach for Month 1 prototy
 
 ---
 
-### 🏆 Recommendation for This Machine & Developer Profile (UPDATED — Desktop-First Strategy)
+### 🏆 Recommendation for This Machine & Developer Profile (UPDATED — Godot 4.4 Production Decision)
 
-> **Commit to Unity 6 LTS from Day 1. Do NOT plan an engine migration.**
+> **Commit to Godot 4.4 from Day 1. This is the production engine for Aryavarta.**
 >
-> Earlier drafts suggested "prototype in Godot, then migrate to Unity." **That advice has been retired.** Mid-project engine migrations are one of the most common reasons indie games die. Since the goal is **desktop-first now, with a clean path to mobile later**, Unity is the correct single choice because:
-> - Its mobile export + monetization SDK ecosystem (IAP, ads, analytics) is first-class — you get the mobile door for *free* without changing engines.
-> - Cross-platform input (keyboard/mouse + controller now, touch later) is built in.
-> - Steam, GOG, Epic, Android, and iOS all export from one project.
+> The priority has shifted from "prove the design works" (done — the JS prototype accomplished that) to **"make something that looks, sounds, and feels like a real game."** Godot 4.4 is the fastest path from "design prototype" to a polished, shippable indie game because:
 >
-> Your RTX 5090 + 64 GB RAM means Unity's heavier editor is completely comfortable. **Godot is now only a personal learning sandbox — not the production path.**
+> - **~200 MB install** vs Unity's 12 GB — gets you to "game running on screen" in minutes, not hours.
+> - **GDScript** (Python-like syntax) is faster to iterate on than C#, and the entire game logic from the JS prototype translates directly — the same data structures, the same event patterns.
+> - **Node/Scene architecture** maps perfectly to Aryavarta's systems: each Atma is a scene, each battle formation is a Node2D, the Mandala UI is a Control tree — everything is modular and visual in the editor.
+> - **LDtk has first-class Godot integration** (the `LDtk Importer` plugin imports levels directly as scenes). This is the best 2D tilemap workflow available for indie devs.
+> - **AnimationPlayer + AnimatedSprite2D** give real sprite animation (walk cycles, battle animations) out of the box with zero code.
+> - **AudioStreamPlayer** with AudioBus allows the dynamic music system (overworld → battle → Dharma-based layering) described in the GDD.
+> - **100% free, no royalties, no runtime fee controversy.** Ship on Steam keeping 100% of engine revenue.
+> - **Exports to:** Windows, Linux, macOS, Android, HTML5 (browser) — all from one project, all for free.
+>
+> **Unity remains an option if the game succeeds and needs Switch/PlayStation/Xbox console ports** (which require Unity or Unreal). But for reaching a shippable vertical slice quickly, **Godot 4.4 is the correct choice.**
+>
+> Your RTX 5090 + 64 GB RAM means you can run **Godot + Krita + Blender + REAPER simultaneously** with zero slowdown — the lightweight Godot editor leaves most of your RAM free for art and audio tools.
 
 ### 🎯 Platform Strategy: Desktop-First, Mobile-Ready
 
-| Phase | Platform | When | Notes |
+| Phase | Platform | Engine Path | Notes |
 |---|---|---|---|
-| **Phase 1 (NOW)** | **Windows Desktop (Steam)** | Primary target | Best "feel" for an atmospheric, story-driven RPG. Build wishlists here. |
-| **Phase 2** | macOS + Linux (Steam) | Near-free with Unity | One checkbox each at export time. |
-| **Phase 3** | **Android** | Post-launch | Buildable directly from this PC (you already have Google Play Games installed for testing). |
-| **Phase 4** | **iOS / iPad** | Later | ⚠️ **Requires a Mac** — see Section 11. |
+| **Phase 1 (NOW)** | **Windows Desktop (Steam)** | Godot → Windows export | Primary target. Best "feel" for an atmospheric RPG. Build Steam wishlists here. |
+| **Phase 2** | macOS + Linux (Steam) | Godot → macOS/Linux export | Free, one checkbox each. macOS requires code-signing (~$99/yr Apple Dev account). |
+| **Phase 3** | **Android** | Godot → Android export | Buildable from your PC (Google Play Games already installed for testing). |
+| **Phase 4** | **Browser (itch.io demo)** | Godot → HTML5 export | Free demo to build community before Steam launch. |
+| **Phase 5** | **iOS / iPad** | Requires Mac + Xcode | ⚠️ Defer until post-launch. See Section 12. |
 
-**Design rule to keep mobile cheap later:** even though you're building for desktop, **design the Mandala UI and HUD touch-friendly from the start** (large tap targets, no hover-only interactions, scalable anchors). Retrofitting touch into a mouse-only UI is expensive; designing for both from day one is nearly free.
+**Design rule — touch-friendly from day one:** design the Mandala UI and HUD for large tap targets and no hover-only interactions. Retrofitting touch into a mouse-only UI is expensive; designing for both from day one is nearly free.
 
 ---
 
@@ -203,34 +212,32 @@ These run inside the DAW and provide high-quality sampled instruments:
 
 | Language | Engine | Role |
 |---|---|---|
-| **C#** | Unity | Main game logic — battle engine, Vyuha grid, Karma system, AI, save files |
-| **GDScript** | Godot | Primary scripting language (Python syntax); all game logic |
-| **Ruby (RGSS3)** | RPG Maker XP | If using RPG Maker — battle modifications, custom UI |
-| **GLSL / Shader Graph** | Unity/Godot | Elemental shaders, screen effects (Eclipse of Maya overlay, Maya vs Dharma color scheme) |
+| **GDScript** | Godot 4.4 ✅ **PRIMARY** | All game logic — battle engine, Vyuha grid, Karma system, overworld, UI, save files |
+| **GLSL (Godot shaders)** | Godot 4.4 | Elemental shaders, screen effects (Eclipse of Maya — gold/purple color schemes) |
+| **C#** | Unity (future/optional) | If the game later needs console ports or Unity-specific plugins |
+| **Ruby (RGSS3)** | RPG Maker XP (retired) | No longer on the path — RPG Maker is not being used |
 
 ### What Needs to Be Installed
 
 | Tool | Why | Install |
 |---|---|---|
-| **.NET SDK 8.0** | Required for C# compilation in VS Code + Unity | https://dotnet.microsoft.com/en-us/download/dotnet/8.0 |
-| **Python 3.12** | Asset pipeline scripts, data entry automation (Atma-Kosha CSV → JSON), AI-assisted tools (DALL-E API, ChatGPT API for NPC dialogue generation) | https://www.python.org/downloads/ |
-| **Ruby 3.x** (via RubyInstaller) | Only needed if RPG Maker XP route is chosen | https://rubyinstaller.org/downloads/ |
+| **Godot 4.4** | Production game engine — everything runs here | https://godotengine.org/download/windows/ |
+| **Python 3.12** | Asset pipeline scripts, data entry automation (Atma-Kosha CSV → JSON → Godot Resources), AI tools | https://www.python.org/downloads/ |
+| **.NET SDK 8.0** | Only needed if C# scripting in Unity is used in the future | https://dotnet.microsoft.com/en-us/download/dotnet/8.0 |
 
 ### VS Code Extensions to Install Right Now
 
 Open VS Code and install these from the Extensions panel (`Ctrl+Shift+X`):
 
-| Extension | Publisher | Purpose |
-|---|---|---|
-| **C# Dev Kit** | Microsoft | Full C# IntelliSense, debugger, and test runner |
-| **Godot Tools** | geequlim | GDScript language support, debugger |
-| **Unity** | Unity Technologies | Unity project integration |
-| **GLSL Lint** | cadenas | Shader file validation |
-| **Shader languages support** | slevesque | GLSL/HLSL syntax highlighting |
-| **Excel Viewer** | GrapeCity | View Atma-Kosha balance sheets inside VS Code |
-| **Markdown All in One** | Yu Zhang | For maintaining and rendering the GDD |
-| **GitLens** | GitKraken | Advanced git history and blame for tracking design changes |
-| **REST Client** | Huachao Mao | Test PvP backend API endpoints |
+| Extension | Publisher | Purpose | Priority |
+|---|---|---|---|
+| **Godot Tools** | geequlim | GDScript IntelliSense, debugger, scene tree view | 🔴 Critical |
+| **GitLens** | GitKraken | Git history, blame, asset change tracking | 🔴 Critical |
+| **Markdown All in One** | Yu Zhang | Render and edit the GDD live in VS Code | 🔴 Critical |
+| **GLSL Lint** | cadenas | Godot shader file (`.gdshader`) validation | 🟡 High |
+| **REST Client** | Huachao Mao | Test PvP backend API endpoints | 🟡 High |
+| **Excel Viewer** | GrapeCity | View Atma-Kosha balance sheets inside VS Code | 🟢 Recommended |
+| **C# Dev Kit** | Microsoft | Only needed if/when Unity is used | 🔵 Optional |
 
 ---
 
@@ -269,23 +276,34 @@ The GDD describes a **PvP system with ranked matches, an Ashram Defense (asynchr
 
 ## 🔧 7. Specialized Game Dev Tools
 
-### Turn-Based Battle Frameworks (Unity Asset Store)
+### Godot Plugins & Add-ons (Free — Godot Asset Library)
 
-These are paid assets that save months of work on the combat engine:
+These are free plugins from the Godot Asset Library (`AssetLib` tab inside the editor) that save significant time:
 
-| Asset | Price | What it Gives You |
+| Plugin | Purpose | Cost |
 |---|---|---|
-| **Turn-Based Strategy Kit** (by Indie Marc) | ~$40 | Full turn-based grid system — adapt for 3×3 Vyuha battle |
-| **Dialogue System for Unity** (by Pixel Crushers) | ~$65 | Branching dialogue with variable tracking — perfect for Dharma choice system |
-| **Feel** (by More Mountains) | Free–$90 | Juice/feedback effects (screen shake, flash) for Astra impacts |
-| **DOTween Pro** | ~$15 | Animation tweening for Mandala UI, Atma evolution sequences |
+| **Dialogic 2** | Visual novel-style dialogue system with branching, variables, and portraits. Perfect for the Dharma karma choice system and NPC dialogues. | **Free** |
+| **LDtk Importer** | Imports LDtk level files as Godot scenes. First-class integration — the correct workflow for Aryavarta's tilemap world. | **Free** |
+| **Godot Rollback Netcode** | Rollback-based multiplayer framework — needed for eventual PvP. Start with this foundation rather than building from scratch. | **Free** |
+| **Phantom Camera** | Advanced camera system for smooth overworld camera, cinematic cutscenes, and battle zoom-ins. | **Free** |
+| **GodotTweens / Anima** | Animation tweening for the Mandala UI, Atma evolution sequences, and screen transitions. | **Free** |
+| **Gut (Godot Unit Tests)** | Unit testing framework for GDScript — test battle formula, damage calculations, type effectiveness. | **Free** |
+
+### "Juice" / Game Feel (Built-in to Godot 4)
+
+Unlike Unity, Godot 4 has these *built-in* — no paid plugin needed:
+- **ShakeableCamera2D** via `Camera2D.offset` tweening → screen shake on Astra impact
+- **CanvasModulate** → full-screen color flash (eclipse, battle start)
+- **AnimationPlayer** → any UI element can be animated without code
+- **AudioBus + AudioEffectChorus/Reverb** → dynamic music layering for Dharma meter
 
 ### Localization (Sanskrit & Hindi)
 
 | Tool | Notes |
 |---|---|
-| **Unity Localization Package** | Official Unity package for multi-language support — handle Sanskrit transliterations |
-| **CSV/JSON locale files** | Store Sanskrit Astra names, mantra text, location names in structured locale files |
+| **Godot Localization** (built-in) | `TranslationServer` + `.csv` or `.po` files handle Sanskrit transliterations. Zero extra plugin needed. |
+| **Noto Sans Devanagari** (font) | Import as `.ttf` into `res://fonts/` — works natively with Godot's Label nodes |
+| **CSV locale files** | Store Sanskrit Astra names, mantra text, location names; auto-loaded via Godot's built-in localization system |
 
 ### AI-Assisted Tools (Your RTX 5090 Makes Local AI Viable)
 
@@ -298,76 +316,115 @@ These are paid assets that save months of work on the combat engine:
 
 ---
 
-## 📋 8. Full Install Checklist
+## 📋 8. Full Install Checklist (UPDATED — Godot Pipeline)
 
 Copy this list and work through it top to bottom:
 
 ### 🔴 CRITICAL (Install First — Unblocks Everything)
 
-- [ ] **Unity Hub** → https://unity.com/download  
-  Then inside Hub: Install **Unity 6000.0 LTS** with modules: `WebGL`, `Android Build Support`, `Windows Build Support`
-- [ ] **.NET SDK 8.0** → https://dotnet.microsoft.com/en-us/download/dotnet/8.0
+- [ ] **Godot 4.4 Standard** → https://godotengine.org/download/windows/ *(~200 MB, no installer — just unzip and run)*
 - [ ] **Python 3.12** → https://www.python.org/downloads/ *(check "Add to PATH" during install)*
+- [ ] **Git LFS** → https://git-lfs.com *(run `git lfs install` after — needed for sprites and audio in git)*
+- [ ] **VS Code → Godot Tools extension** (geequlim) — connects Godot editor to VS Code debugger
 
-### 🟡 HIGH PRIORITY (Art & Audio Pipeline)
+### 🟡 HIGH PRIORITY (Art Pipeline — Draw the Game)
 
-- [ ] **Krita** → https://krita.org/en/download/
-- [ ] **Aseprite** → https://store.steampowered.com/app/431730/ *(Steam — $20)*
-- [ ] **Blender 4.x** → https://www.blender.org/download/
-- [ ] **Tiled Map Editor** → https://www.mapeditor.org/
-- [ ] **REAPER** → https://www.reaper.fm/download.php (reaper is paid)
-- [ ] **Audacity** → https://www.audacityteam.org/download/
-- [ ] **Native Instruments Kontakt Player** → https://www.native-instruments.com *(free player)* (not installed yet)
-- [ ] **Spitfire LABS** → https://labs.spitfireaudio.com/
+- [ ] **Krita** → https://krita.org/en/download/ *(Madhubani concept art, Pattachitra UI borders — already installed?)*
+- [ ] **Aseprite** → https://store.steampowered.com/app/431730/ *(Steam — $20 — pixel sprite animation)*
+- [ ] **LDtk (Level Designer Toolkit)** → https://ldtk.io/ *(design Ayodhya, Tataka Forest tilemaps visually)*
+- [ ] **Inkscape** → https://inkscape.org/release/ *(Mandala UI vector art, Sanskrit border frames)*
+- [ ] **Noto Sans Devanagari font** → https://fonts.google.com/noto/specimen/Noto+Sans+Devanagari
+
+### 🟡 HIGH PRIORITY (Audio Pipeline — Sound the Game)
+
+- [ ] **Audacity** → https://www.audacityteam.org/download/ *(trim/export .ogg audio for Godot — free)*
+- [ ] **REAPER** → https://www.reaper.fm/download.php *($60 — professional DAW for composing battle themes)*
+- [ ] **Native Instruments Kontakt Player** → https://www.native-instruments.com *(free player for instrument libraries)*
+- [ ] **Spitfire LABS** → https://labs.spitfireaudio.com/ *(free orchestral pads/strings — a good starting point)*
 
 ### 🟢 RECOMMENDED (Enhances Workflow)
 
-- [ ] **Godot 4.4** → https://godotengine.org/download/windows/ *(for rapid prototyping)*
-- [ ] **Inkscape** → https://inkscape.org/release/
-- [ ] **Git LFS** → https://git-lfs.com *(run `git lfs install` after)*
-- [ ] **LDtk** → https://ldtk.io/
-- [ ] **Obsidian** → https://obsidian.md/download *(for GDD management)*
-- [ ] **Noto Sans Devanagari font** → https://fonts.google.com/noto/specimen/Noto+Sans+Devanagari
+- [ ] **Blender 4.x** → https://www.blender.org/download/ *(3D renders for promotional art, animated cutscenes)*
+- [ ] **Obsidian** → https://obsidian.md/download *(offline GDD management — already have Markdown files)*
+- [ ] **VS Code → GitLens** (GitKraken) — advanced git history
+- [ ] **VS Code → Markdown All in One** (Yu Zhang) — render GDD inside editor
 
-### 🔵 VS Code Extensions (Install via `Ctrl+Shift+X`)
+### 🔵 FUTURE / OPTIONAL
 
-- [ ] C# Dev Kit (Microsoft)
-- [ ] Godot Tools (geequlim)
-- [ ] Unity (Unity Technologies)
-- [ ] GitLens (GitKraken)
-- [ ] GLSL Lint
-- [ ] Markdown All in One
+- [ ] **Unity Hub + Unity 6 LTS** → only if console ports are needed post-launch
+- [ ] **.NET SDK 8.0** → only needed with Unity
+- [ ] **VS Code → C# Dev Kit** → only needed with Unity
 
 ---
 
-## 🏗️ 9. Recommended Project Architecture
+## 🏗️ 9. Recommended Project Architecture (Godot 4.4)
 
 ```
-aryavarta/
-├── game/                        # Unity or Godot project
-│   ├── Assets/
-│   │   ├── Atmas/               # Sprite sheets, animations per Atma
-│   │   ├── Audio/               # .ogg files (battle, overworld, boss)
-│   │   ├── Maps/                # Tiled .tmx exports → Unity tilemaps
-│   │   ├── Scripts/
-│   │   │   ├── Battle/          # VyuhaGrid.cs, AstraSystem.cs, TapasManager.cs
-│   │   │   ├── World/           # DharmaManager.cs (Singleton), KarmaSystem.cs
-│   │   │   ├── UI/              # MandalaInterface.cs, AtmaKoshaUI.cs
-│   │   │   └── Data/            # AtmaDatabase.cs, AstraDatabase.cs (ScriptableObjects)
-│   │   ├── Shaders/             # DharmaGold.shadergraph, MayaPurple.shadergraph
-│   │   └── Scenes/              # Ayodhya.unity, Panchavati.unity, Lanka.unity
-│   └── ProjectSettings/
+aryavarta-godot/                 # ← The REAL game (Godot 4.4 project)
+├── project.godot                # Godot project settings file
+├── scenes/
+│   ├── world/
+│   │   ├── Ayodhya.tscn         # Overworld region scenes (LDtk import)
+│   │   ├── Tataka.tscn
+│   │   ├── Kishkindha.tscn
+│   │   └── Lanka.tscn
+│   ├── battle/
+│   │   ├── BattleScene.tscn     # Main battle screen
+│   │   ├── MandalaUI.tscn       # The circular battle interface
+│   │   └── AtmaSprite.tscn      # Reusable animated Atma prefab
+│   ├── ui/
+│   │   ├── MainMenu.tscn
+│   │   ├── AtmaKosha.tscn       # The Pokédex equivalent
+│   │   ├── AmritPouch.tscn      # Item bag
+│   │   └── KarmaHUD.tscn        # Dharma meter overlay
+│   └── cutscenes/               # Dialogic 2 dialogue scenes
+│       ├── ch01_awakening.dtl
+│       └── ch02_trimurti.dtl
+├── scripts/
+│   ├── autoload/                # Godot AutoLoad (Singletons)
+│   │   ├── DharmaManager.gd     # Global Karma/Dharma state
+│   │   ├── PlayerState.gd       # Party, steps, save/load
+│   │   └── AudioManager.gd      # Dynamic music system
+│   ├── battle/
+│   │   ├── BattleEngine.gd      # Port from JS: damage formula, turn order, AI
+│   │   ├── VyuhaGrid.gd         # 4 formations with combat multipliers
+│   │   ├── AtmaInstance.gd      # Live stats (HP, Tapas, status, Bhakti)
+│   │   └── AstraSystem.gd       # Move execution, type effectiveness
+│   ├── world/
+│   │   ├── PlayerController.gd  # WASD movement, animation state machine
+│   │   ├── EncounterTrigger.gd  # Tall-grass step counter
+│   │   └── NPC.gd               # NPC interaction base class
+│   └── data/
+│       ├── AtmaDatabase.gd      # Autoload: all 29 species as Resources
+│       ├── AstraDatabase.gd     # Autoload: all 25 moves as Resources
+│       └── TypeChart.gd         # 5×5 effectiveness matrix
+├── sprites/
+│   ├── atmas/                   # .png sprite sheets (Aseprite exports)
+│   ├── player/                  # Player walk/run/battle sprites
+│   ├── tiles/                   # Tileset PNGs (Ayodhya, Forest, Mountain)
+│   └── ui/                      # Mandala UI, borders, icons
+├── audio/
+│   ├── music/                   # .ogg — overworld, battle, boss themes
+│   └── sfx/                     # .wav — Astra hits, UI clicks, conch
+├── shaders/
+│   ├── DharmaGold.gdshader      # Golden glow for Divine moves
+│   └── MayaPurple.gdshader      # Purple distortion for Shadow/Maya moves
+├── fonts/
+│   └── NotoSansDevanagari.ttf   # Sanskrit text rendering
+├── data/
+│   └── localization/            # en.csv, hi.csv (Sanskrit/Hindi strings)
+│
+├── aryavarta/                   # ← JS Logic Prototype (Phases 1–3, reference only)
+│   └── (existing browser prototype)
 │
 ├── art/                         # Source files (Krita .kra, Aseprite .ase, Blender .blend)
-├── audio/                       # REAPER project files, stems
-├── backend/                     # Node.js PvP server (reuse ChitSeva backend pattern)
-│   ├── src/
-│   │   ├── pvp/                 # matchmaking, Ashram defense, Karma ladder
-│   │   └── player/              # player profiles, Dharma meter persistence
-│   └── prisma/                  # Schema for players, matches, Ashrams
-├── tools/                       # Python scripts: atma_csv_to_json.py, balance_sim.py
+├── audio-src/                   # REAPER project files, stems, raw recordings
+├── backend/                     # Node.js PvP server (reuse ChitSeva pattern)
+│   ├── src/pvp/                 # matchmaking, Ashram defense, Karma ladder
+│   └── prisma/                  # Player profiles, matches, Ashram layouts
+├── tools/                       # Python: atma_csv_to_json.py, balance_sim.py
 ├── docs/                        # GDD, Atma-Kosha spreadsheets
-└── .github/workflows/           # CI/CD: auto-build Unity project on push
+└── .github/workflows/           # CI/CD: Godot headless export on push
 ```
 
 ---
@@ -378,36 +435,38 @@ Your machine is **significantly overpowered** for a 2D indie game — this is a 
 
 | Capability | How It Helps Aryavarta |
 |---|---|
-| **RTX 5090 Laptop GPU** | Near-instant Blender renders for concept art & trailers; local Stable Diffusion for Madhubani-style reference art; GPU-accelerated Unity/Godot builds |
-| **64 GB RAM** | Run Unity Editor + Krita + Blender + REAPER simultaneously with zero slowdown; run large local AI models (LLaMA 3 70B) for NPC dialogue generation |
-| **Core Ultra 9 285HX (24 cores)** | Parallel asset compilation; Unity's Burst Compiler and Jobs system will be fully utilized; fast script compilation |
-| **Docker Desktop** | Full backend stack (postgres, redis, api-server) runs locally — test multiplayer without any cloud costs |
-| **WSL 2** | Run Linux-only audio tools, Python environments, and Godot export templates in a real Linux layer |
-| **Google Play Games (installed)** | Test the Android build of Aryavarta on your PC without a physical Android device |
+| **RTX 5090 Laptop GPU** | Near-instant Blender renders for concept art & trailers; local Stable Diffusion for Madhubani-style reference art; Godot GPU particle/shader preview runs at maximum fidelity |
+| **64 GB RAM** | Run Godot Editor + Krita + Blender + REAPER simultaneously with zero slowdown — Godot uses only ~300 MB, leaving the rest for art and AI tools; run LLaMA 3 70B locally for NPC dialogue |
+| **Core Ultra 9 285HX (24 cores)** | Godot's parallel import pipeline compiles all sprites/audio on startup in seconds; Python balance scripts run near-instantly |
+| **Docker Desktop** | Full backend stack (postgres, redis, api-server) runs locally — test PvP/Ashram system without any cloud costs |
+| **WSL 2** | Run Linux-only audio tools, Python environments, and Godot headless export templates in a real Linux layer |
+| **Google Play Games (installed)** | Test the Android export of Aryavarta on your PC without a physical Android device — Godot Android export is one-click |
 
 ---
 
-## 🗺️ Mapping GDD Requirements to Tools
+## 🗺️ Mapping GDD Requirements to Tools (Godot-First)
 
 | GDD Feature | Tool(s) |
 |---|---|
-| 3×3 Vyuha Grid Combat | Unity `Tilemap` + `Grid` + custom `VyuhaManager.cs` *or* Godot `TileMap` node |
-| Tapas Energy System | C# ScriptableObject per Atma; Godot Resource class |
-| Dharma/Karma Meter | C# Singleton `DharmaManager` with JSON save; Godot AutoLoad |
-| Astra Visual Effects | Unity Shader Graph (URP) + VFX Graph *or* Godot's `GPUParticles2D` |
-| Mandala Battle UI | Unity UI Toolkit radial layout *or* Godot `Control` nodes with rotation |
-| Madhubani Sprite Art | **Aseprite** (pixel sprites) + **Krita** (concept painting) |
-| Pattachitra UI Borders | **Inkscape** (vector) → exported PNG → imported into engine |
-| Indian Classical Music | **REAPER** DAW + **Kontakt** instrument libraries |
-| Dynamic Music (Dharma-based) | Unity `AudioMixer` snapshots *or* Godot `AudioBus` switching |
-| Sanskrit Text Overlays | **Noto Sans Devanagari** font + Unity/Godot Localization system |
-| Overworld Tilemap | **Tiled** *or* **LDtk** → import to engine |
+| 3×3 Vyuha Grid Combat | Godot `TileMap` + per-cell metadata + `VyuhaGrid.gd` |
+| Tapas Energy System | Godot `Resource` class per Atma species; `AtmaInstance.gd` for live state |
+| Dharma/Karma Meter | Godot **AutoLoad** `DharmaManager.gd` — global singleton with `FileAccess` JSON save |
+| Astra Visual Effects | Godot **GPUParticles2D** + `.gdshader` (DharmaGold / MayaPurple) |
+| Mandala Battle UI | Godot **Control** nodes with radial positioning + **AnimationPlayer** for transitions |
+| Animated Atma Sprites | **Aseprite** → export `.png` spritesheets → Godot **AnimatedSprite2D** |
+| Concept Art / UI Painting | **Krita** for Madhubani style, **Inkscape** for vector Mandala borders |
+| Pattachitra UI Borders | **Inkscape** (vector) → exported PNG → Godot `NinePatchRect` for scalable borders |
+| Indian Classical Music | **REAPER** DAW + **Kontakt** instrument libraries → export `.ogg` for Godot |
+| Dynamic Music (Dharma-based) | Godot **AudioBus** with `AudioEffectChorus`/`Reverb` + `AudioStreamPlayer` crossfade |
+| Sanskrit Text Overlays | **Noto Sans Devanagari** `.ttf` font imported into `res://fonts/` + Godot `Label` |
+| Overworld Tilemap | **LDtk** level editor → **LDtk Importer plugin** imports directly as Godot scenes |
+| NPC Dialogue / Story Branches | **Dialogic 2** Godot plugin — visual timeline, portraits, karma variables |
 | PvP Backend | Node.js + Socket.io + PostgreSQL + Docker (reuse ChitSeva pattern) |
 | Asynchronous Ashram Defense | Node.js REST API + PostgreSQL (store ghost AI behavior as JSON) |
 | Karma Leaderboard | PostgreSQL + Redis (caching) + REST API |
-| Sadhana Evolution Branching | ScriptableObject tree in Unity *or* Godot Resource graph |
-| Save System | Unity: `PlayerPrefs` + JSON file; Godot: `FileAccess` + JSON |
-| Concept Art Generation | Local Stable Diffusion (ComfyUI) on RTX 5090 |
+| Sadhana Evolution Branching | Godot **Resource** tree — each evolution path is a Resource with stat deltas |
+| Save System | Godot `FileAccess` + JSON → `PlayerState.gd` AutoLoad persists party, Dharma, position |
+| Concept Art Generation | Local Stable Diffusion (ComfyUI) on RTX 5090 — Madhubani style LoRA training |
 | NPC Dialogue Drafts | Local Ollama + LLaMA 3 (64GB RAM supports 70B model) |
 
 ---
@@ -429,22 +488,38 @@ Your machine is **significantly overpowered** for a 2D indie game — this is a 
 
 ---
 
-## ✅ Immediate Next Steps (Day 1 Actions) — Desktop-First
+## ✅ Immediate Next Steps — Godot Production Start
 
-1. **Install Unity Hub** and Unity 6000.0 LTS. At minimum add the **Windows Build Support** module now; add **Android Build Support** too (it's free and keeps the mobile door open).
-2. **Install .NET SDK 8.0** (unblocks C# tooling in VS Code).
-3. **Install Python 3.12** (unblocks AI tools and pipeline scripts).
-4. **Install Krita** (start sketching Atma designs — costs nothing).
-5. **Open VS Code → install C# Dev Kit, GitLens, and Unity extensions**.
-6. **Run `git lfs install`** to prepare the repo for binary assets.
-7. **Create the repo structure** outlined in Section 9 above.
-8. Begin with GDD Month 1 goal: *"Build the Battle Engine — 3v3 turn-based logic"* — built **resolution-independent and input-agnostic** (see Section 11) so it scales from a 1080p monitor to a phone later.
+1. **Download Godot 4.4 Standard** (~200 MB zip, no installer) → https://godotengine.org/download/windows/  
+   Unzip to `C:\DevTools\Godot\` and pin `Godot_v4.4_stable_win64.exe` to taskbar.
 
-> Note: Godot is no longer on the critical path (see the updated Engine Recommendation). Install it only if you want a personal scripting sandbox.
+2. **Create the Godot project:**  
+   Open Godot Hub → New Project → Name: `aryavarta-godot` → Path: `C:\Users\ragha\Aryavarta\aryavarta-godot\` → Renderer: **Forward+ (2D)** → Create.
+
+3. **Install VS Code → Godot Tools extension** (geequlim) and configure the Godot editor path so VS Code debugger connects to the engine.
+
+4. **Run `git lfs install`** and add LFS tracking for sprites/audio:  
+   ```
+   git lfs track "*.png" "*.ogg" "*.wav" "*.blend" "*.ase"
+   git add .gitattributes
+   ```
+
+5. **Install Godot Asset Library plugins** (inside Godot editor → AssetLib tab):  
+   - `Dialogic 2` — dialogue system  
+   - `LDtk Importer` — level/tilemap import  
+   - `Phantom Camera` — smooth overworld camera  
+
+6. **Install Python 3.12** → https://www.python.org/downloads/ (check "Add to PATH")  
+   Then: `pip install Pillow` (sprite batch processing) and `pip install gdtoolkit` (GDScript linter).
+
+7. **First task in Godot:** Get a character sprite moving on a tilemap.  
+   - Import one 16×16 tileset PNG (create a placeholder in Krita first)  
+   - Create `PlayerController.gd` with 4-direction movement  
+   - This confirms the engine is working before writing any game logic
 
 ---
 
-## 💼 11. Monetization & Business Model (Desktop-First)
+##  11. Monetization & Business Model (Desktop-First)
 
 > **You said: "ideally both mobile + desktop, but focus on desktop for now — it'll have the right feel."** That is exactly the correct instinct. Below is the honest strategic picture so the tech stack is built around a real business model, not just features.
 
@@ -555,16 +630,16 @@ The earlier "$80–400" figure was tooling-only. Here is the **true cost to ship
 
 | Category | Item | Cost |
 |---|---|---|
-| **Tools (one-time)** | Aseprite $20 + REAPER $60 + Unity assets ~$150 | **~$230** |
+| **Tools (one-time)** | Aseprite $20 + REAPER $60 | **~$80** |
 | **Store fee (one-time)** | Steam Direct | **$100** |
 | **Audio (optional)** | Ethno World 6 instruments | **~$200** |
-| **Backend (only if leaderboards/PvP)** | Cloud hosting | **~$10–50 / mo** |
-| **Marketing (optional but wise)** | Trailer, key art, Next Fest is free | **$0–500** |
-| **Engine royalty** | Unity Personal | **Free** under $200K rev |
-| **Realistic desktop-launch total** | | **~$330 (lean) – $1,000 (comfortable)** |
+| **Backend (only if PvP)** | Cloud hosting (DigitalOcean/Render) | **~$10–50 / mo** |
+| **Marketing (optional but wise)** | Trailer, key art, Next Fest demo is free | **$0–500** |
+| **Engine royalty** | Godot — **zero royalties, ever** | **FREE** |
+| **Realistic desktop-launch total** | Lean (Godot saves the $150+ Unity assets cost) | **~$180 (lean) – $700 (comfortable)** |
 | **Add later for mobile** | Google Play $25 + (Apple $99/yr + Mac/cloud-Mac for iOS) | **+$25 → +$700** |
 
 ---
 
-*Report generated: May 31, 2026 · Updated for Desktop-First / Mobile-Ready strategy*
+*Report generated: May 31, 2026 · Updated: July 23, 2026 — Engine decision changed to Godot 4.4 (production), project architecture updated to Godot `res://` convention, all Unity-only references reclassified as future/optional.*  
 *Machine: MSI Core Ultra 9 285HX · RTX 5090 · 64 GB RAM · Windows 11*

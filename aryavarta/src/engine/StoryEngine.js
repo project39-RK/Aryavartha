@@ -129,14 +129,22 @@ export class StoryEngine {
       case "narration":
       case "dialogue":
       case "tutorial":
-      case "item":
-      case "seal":
       case "continue":
         this._emit("beat", { beat: enriched });
         // "continue" and endings don't auto-advance
         if (beat.type !== "continue") {
           // waitingForInput = false; UI must call advance()
         }
+        break;
+
+      case "item":
+        this._collectItem(enriched);
+        this._emit("beat", { beat: enriched });
+        break;
+
+      case "seal":
+        this._earnSeal(enriched);
+        this._emit("beat", { beat: enriched });
         break;
 
       case "choice":

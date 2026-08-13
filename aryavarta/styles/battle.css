@@ -1440,3 +1440,552 @@ body::before {
 
   .choice-btn { font-size: 0.85rem; }
 }
+
+/* ===================================================================
+   PHASE 3: OVERWORLD SCREEN — #screen-overworld
+   Tile canvas + HUD + Party Panel + D-pad + Overlays
+   =================================================================== */
+
+/* ── Screen layout ──────────────────────────────────────────────── */
+#screen-overworld {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+  background: var(--bg-deep);
+  overflow: hidden;
+}
+
+/* ── Top HUD bar ────────────────────────────────────────────────── */
+.ow-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 1rem;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-gld);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.ow-topbar-left   { display: flex; flex-direction: column; gap: 0.1rem; }
+.ow-topbar-center { flex: 1; text-align: center; }
+.ow-topbar-right  { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+.ow-map-name {
+  font-family: var(--font-title);
+  font-size: 1rem;
+  color: var(--gold-light);
+  letter-spacing: 0.06em;
+}
+
+.ow-map-sub {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.ow-hint {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+}
+
+.ow-steps-badge {
+  font-size: 0.72rem;
+  color: var(--gold);
+  background: #2a1a0a;
+  border: 1px solid var(--border-gld);
+  border-radius: 12px;
+  padding: 2px 10px;
+}
+
+/* ── Canvas viewport ────────────────────────────────────────────── */
+.ow-canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#overworld-canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  cursor: default;
+  /* Canvas fills its wrapper — OverworldEngine sets width/height */
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* ── Encounter flash overlay ────────────────────────────────────── */
+.ow-encounter-flash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 50%, #1a003a 0%, #0d0a16 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 50;
+}
+
+.ow-encounter-flash.encounter-active {
+  opacity: 1;
+  pointer-events: all;
+  animation: encounterFlash 1.4s ease-in-out forwards;
+}
+
+@keyframes encounterFlash {
+  0%   { opacity: 0; background: var(--bg-deep); }
+  20%  { opacity: 1; background: #ffffffee; }
+  40%  { opacity: 1; background: #1a003a; }
+  80%  { opacity: 1; background: #1a003aee; }
+  100% { opacity: 0; }
+}
+
+.ow-encounter-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.ow-encounter-glyph {
+  font-size: 4rem;
+  animation: glyphBounce 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes glyphBounce {
+  from { transform: translateY(0) scale(1); }
+  to   { transform: translateY(-10px) scale(1.08); }
+}
+
+.ow-encounter-label {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ow-encounter-name {
+  font-family: var(--font-title);
+  font-size: 1.6rem;
+  color: var(--gold-light);
+  text-shadow: 0 0 20px #c8973a88;
+}
+
+/* ── NPC Dialogue overlay ───────────────────────────────────────── */
+.ow-dialogue-overlay {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 0 1rem 0.5rem;
+  z-index: 30;
+  background: linear-gradient(transparent, rgba(13,10,22,0.92) 30%);
+}
+
+.ow-dialogue-box {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-gld);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius) var(--radius);
+  padding: 1rem 1.2rem;
+  max-width: 700px;
+  margin: 0 auto;
+  box-shadow: 0 -8px 32px #0009;
+  animation: panelFadeIn 0.25s ease;
+}
+
+.ow-dlg-speaker-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.ow-dlg-glyph {
+  font-size: 1.8rem;
+  background: var(--bg-card);
+  border-radius: 50%;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border-gld);
+}
+
+.ow-dlg-name {
+  font-family: var(--font-title);
+  font-size: 1rem;
+  color: var(--gold-light);
+}
+
+.ow-dlg-text {
+  font-size: 0.93rem;
+  line-height: 1.75;
+  color: var(--text);
+  padding: 0.2rem 0;
+  min-height: 3.5em;
+}
+
+.ow-dlg-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.ow-dlg-progress {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+}
+
+/* ── Shrine overlay ─────────────────────────────────────────────── */
+.ow-shrine-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 10, 22, 0.85);
+  z-index: 40;
+  animation: panelFadeIn 0.3s ease;
+}
+
+.ow-shrine-box {
+  background: linear-gradient(160deg, #1a0e0a, #0d0a16);
+  border: 1px solid var(--border-gld);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  text-align: center;
+  max-width: 440px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ow-shrine-glyph {
+  font-size: 2.8rem;
+  animation: sealPulse 2s ease-in-out infinite alternate;
+}
+
+.ow-shrine-text {
+  font-size: 0.92rem;
+  color: var(--text);
+  line-height: 1.8;
+  font-style: italic;
+  max-width: 360px;
+  border-left: 2px solid var(--border-gld);
+  padding-left: 0.8rem;
+  text-align: left;
+}
+
+/* ── Locked portal overlay ──────────────────────────────────────── */
+.ow-locked-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 10, 22, 0.80);
+  z-index: 40;
+  animation: panelFadeIn 0.3s ease;
+}
+
+.ow-locked-box {
+  background: var(--bg-panel);
+  border: 1px solid #cc3333;
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  text-align: center;
+  max-width: 420px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ow-locked-icon { font-size: 2.5rem; }
+
+.ow-locked-text {
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.75;
+}
+
+.ow-locked-text em { color: var(--text-dim); }
+
+/* ── Party panel (slide-in from right) ─────────────────────────── */
+.ow-party-panel {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: min(320px, 90vw);
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border-gld);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideInRight 0.25s ease;
+  box-shadow: -8px 0 32px #0006;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+.ow-party-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1rem;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-gld);
+  flex-shrink: 0;
+}
+
+.ow-party-title {
+  font-family: var(--font-title);
+  font-size: 1rem;
+  color: var(--gold-light);
+}
+
+.ow-party-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ow-party-footer {
+  padding: 0.6rem 1rem;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  display: flex;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+/* Party card in the panel */
+.party-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.55rem 0.7rem;
+  transition: border-color 0.2s;
+}
+
+.party-card:hover { border-color: var(--border-gld); }
+
+.party-card-glyph {
+  font-size: 1.8rem;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.party-card-info { flex: 1; min-width: 0; }
+
+.party-card-name {
+  font-family: var(--font-title);
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.party-card-meta {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+
+.party-card-hp {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-top: 0.2rem;
+}
+
+/* ── Mobile D-pad ───────────────────────────────────────────────── */
+.ow-dpad {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  display: none; /* shown on touch devices */
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  z-index: 20;
+  opacity: 0.75;
+  user-select: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .ow-dpad { display: flex; }
+  .ow-hint { display: none; }
+}
+
+.dpad-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.dpad-btn {
+  width: 44px; height: 44px;
+  background: rgba(30, 24, 54, 0.85);
+  border: 1px solid var(--border-gld);
+  border-radius: 6px;
+  color: var(--gold-light);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dpad-btn:active { background: var(--border-gld); transform: scale(0.93); }
+
+.dpad-center-dot {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--border-gld);
+  font-size: 0.6rem;
+  opacity: 0.4;
+}
+
+/* ── Small utility button ───────────────────────────────────────── */
+.btn-small {
+  padding: 0.3rem 0.8rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-gld);
+  border-radius: var(--radius);
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: background 0.15s, filter 0.15s;
+}
+
+.btn-small:hover { filter: brightness(1.2); background: #2a1a0a; }
+
+.btn-secondary {
+  padding: 0.5rem 1.4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-secondary:hover { border-color: var(--border-gld); color: var(--text); }
+
+.btn-dim { opacity: 0.7; }
+
+/* ── Bind tab UI (in Mandala panel) ────────────────────────────── */
+.tab-btn-bind {
+  background: linear-gradient(135deg, #1a0a2a, #2a0a4a) !important;
+  color: #cc88ff !important;
+}
+
+.tab-btn-bind.active-tab {
+  border-bottom-color: #cc88ff !important;
+  color: #dd99ff !important;
+}
+
+.bind-status {
+  display: flex; flex-direction: column; gap: 0.5rem; padding: 0.3rem 0;
+}
+
+.bind-rate-bar-wrap {
+  height: 6px;
+  background: #1a123a;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid #3a2d5c;
+}
+
+.bind-rate-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.bind-ready {
+  display: flex; flex-direction: column; gap: 0.5rem;
+  background: #0d0320;
+  border: 1px solid #6633aa;
+  border-radius: var(--radius);
+  padding: 0.7rem 0.8rem;
+}
+
+.bind-mantra-label {
+  font-family: var(--font-title);
+  font-size: 0.9rem;
+  color: #dd99ff;
+  text-align: center;
+}
+
+.bind-rate-display {
+  font-size: 0.78rem;
+  color: var(--text);
+  text-align: center;
+}
+
+.btn-bind-attempt {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #4a0a7a, #8a2adf);
+  border: 1px solid #aa44ff;
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.12s;
+  letter-spacing: 0.04em;
+}
+
+.btn-bind-attempt:hover { filter: brightness(1.2); transform: scale(1.02); }
+.btn-bind-attempt:active { transform: scale(0.97); }
+
+.bind-success-msg {
+  text-align: center;
+  padding: 0.7rem;
+  font-size: 0.9rem;
+  color: var(--gold-light);
+  border: 1px solid var(--border-gld);
+  border-radius: var(--radius);
+  background: #1a1000;
+  line-height: 1.6;
+}
+
+/* ── Overworld responsive ───────────────────────────────────────── */
+@media (max-width: 480px) {
+  .ow-topbar { padding: 0.35rem 0.6rem; }
+  .ow-map-name { font-size: 0.85rem; }
+  .ow-hint { display: none; }
+  .ow-party-panel { width: 100vw; }
+}

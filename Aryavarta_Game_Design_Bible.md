@@ -353,7 +353,7 @@ Once the main story ends, the game transforms into a "Legendary Hunter" style ex
 |---|---|---|
 | Month 1 | Build the "Battle Engine" (3v3 turn-based logic) + Vyuha Formation system | ✅ **Done** |
 | Month 2 | Story Engine (10 chapters), 8 NPC Characters, Karma system, Starter selection | ✅ **Done** |
-| Month 3 | Expand Atma-Kosha (+20 more species), overworld movement, wild encounter system | 📋 Next |
+| Month 3 | Expand Atma-Kosha (+20 more species), overworld movement, wild encounter system | ✅ **Done** |
 | Month 4 | Tapas Charging (slow charge for high-tier Astras), Sadhana/branching evolution | 📋 Planned |
 | Month 5 | Crafting system (Rasayana Lab), full Item system (Sanjeevani, Soma-Rasa), Binding mechanic | 📋 Planned |
 | Month 6+ | PvP via Node.js + WebSockets, Ashram Defense async system, Vyuha grid 3×3 positioning | 🔜 Backlog |
@@ -974,7 +974,7 @@ The game opens with the "Eclipse of Maya" corrupting Ayodhya. The player chooses
 ### VII. Development Roadmap
 - **Phase 1 ✅:** Battle Engine & Vyuha Formation system — *complete, playable in-browser.*
 - **Phase 2 ✅:** Story Engine (10 chapters), 8 NPCs, Karma axes, Starter selection — *complete, playable in-browser.*
-- **Phase 3 📋:** Expand Atma-Kosha (+20 more species), overworld movement, wild encounter system.
+- **Phase 3 ✅:** Overworld canvas map (4 regions), 20 new Atma species, wild encounter + Binding Mantra system, Party HUD, PlayerState persistence — *complete, playable in-browser.*
 - **Phase 4 📋:** Sadhana/branching evolution, Rasayana Lab crafting, full item system.
 - **Phase 5 🔜:** PvP (Node.js + WebSockets), Ashram Defense, 3×3 grid positioning.
 
